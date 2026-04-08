@@ -13,20 +13,26 @@ export type SchoolType = "PRIVATE" | "GOVERNMENT" | "AIDED" | "INTERNATIONAL";
 
 // ── Core entities ─────────────────────────────────────────
 
+export interface TeacherSubject {
+  id: string;
+  subject: string;
+  gradeLevel?: string | null;
+}
+
 export interface TeacherProfile {
   id: string;
   name: string;
-  phone: string;
+  phone?: string | null;
   city: string | null;
   state: string | null;
   bio: string | null;
+  photoUrl?: string | null;
   qualification: string | null;
+  specialization?: string | null;
   experienceYears: number;
-  subjects: string[];
-  grades: string[];
-  profilePicUrl: string | null;
+  subjects: TeacherSubject[];
   resumeUrl: string | null;
-  isVerified: boolean;
+  isAvailable?: boolean;
 }
 
 export interface SchoolProfile {
@@ -72,9 +78,15 @@ export interface Application {
   teacherId: string;
   status: ApplicationStatus;
   coverLetter: string | null;
-  appliedAt: string;
+  createdAt: string;
   job?: Pick<JobVacancy, "id" | "title" | "school" | "salaryMin" | "salaryMax" | "city" | "state">;
-  teacher?: Pick<TeacherProfile, "id" | "name" | "city" | "qualification" | "experienceYears">;
+  teacher?: Pick<TeacherProfile, "id" | "name" | "city" | "qualification" | "experienceYears"> & {
+    photoUrl?: string | null;
+    bio?: string | null;
+    resumeUrl?: string | null;
+    phone?: string | null;
+    subjects?: TeacherSubject[];
+  };
 }
 
 // ── API response wrappers ────────────────────────────────

@@ -27,7 +27,10 @@ schoolsRouter.get("/me", authenticateJWT, authorizeRole(["SCHOOL_ADMIN"]), async
     });
 
     res.json({ 
-      school, 
+      school: {
+        ...school,
+        isVerified: school.verificationStatus === 'FULLY_VERIFIED'
+      }, 
       stats: {
         totalJobs: school._count.jobs,
         totalApplications: applicationsCount

@@ -78,7 +78,7 @@ export default function TeacherDashboard() {
 
   const stats = [
     { label: "Total Applications", value: applications.length, icon: <Send size={20} />, color: "#4f46e5", bg: "#eef2ff" },
-    { label: "Profile Views", value: profile?.id.length || 0, icon: <Eye size={20} />, color: "#0891b2", bg: "#e0f2fe" }, // Hardcoded for now
+    { label: "Profile Views", value: 0, icon: <Eye size={20} />, color: "#0891b2", bg: "#e0f2fe" },
     { label: "Saved Jobs", value: 0, icon: <Bookmark size={20} />, color: "#f59e0b", bg: "#fef3c7" },
     { label: "Shortlisted", value: applications.filter(a => a.status === "SHORTLISTED").length, icon: <Award size={20} />, color: "#059669", bg: "#d1fae5" },
   ];
@@ -297,7 +297,7 @@ export default function TeacherDashboard() {
                         </div>
                         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
                           <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                            <Clock size={11} /> Applied {new Date(app.appliedAt).toLocaleDateString()}
+                            <Clock size={11} /> Applied {new Date(app.createdAt).toLocaleDateString()}
                           </span>
                           <span style={{ fontSize: "0.78rem", color: "var(--success-600)", fontWeight: 600 }}>
                             {app.job?.salaryMin ? `₹${(app.job.salaryMin / 1000).toFixed(0)}k–${(app.job.salaryMax! / 1000).toFixed(0)}k` : "Salary not disclosed"}

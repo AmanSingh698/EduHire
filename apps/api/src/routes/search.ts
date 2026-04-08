@@ -37,7 +37,10 @@ searchRouter.get("/jobs", async (req, res) => {
       take: 50
     });
 
-    res.json({ jobs: results, total: results.length });
+    res.json({ jobs: results.map(r => ({
+      ...r,
+      school: r.school ? { ...r.school, isVerified: r.school.verificationStatus === 'FULLY_VERIFIED' } : null
+    })), total: results.length });
   } catch (err) {
     res.status(500).json({ error: "Search failed" });
   }

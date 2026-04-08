@@ -44,10 +44,27 @@ teachersRouter.get("/:id", async (req, res) => {
 /* PUT /api/teachers/me — update own profile */
 teachersRouter.put("/me", authenticateJWT, authorizeRole(["TEACHER"]), async (req: AuthRequest, res) => {
   try {
+    const { subjects, ...profileData } = req.body;
+
     const updated = await prisma.teacherProfile.update({
       where: { userId: req.user!.id },
-      data: req.body
+      data: {
+        ...profileData,
+        ...(Array.isArray(subjects) ? {
+          subjects: {
+            deleteMany: {},
+            createMany: {
+              data: subjects.map((s: { subject: string; gradeLevel?: string }) => ({
+                subject: s.subject,
+                gradeLevel: s.gradeLevel || null,
+              })),
+            },
+          },
+        } : {}),
+      },
+      include: { subjects: true },
     });
+
     res.json({ message: "Profile updated successfully", teacher: updated });
   } catch (err) {
     res.status(500).json({ error: "Failed to update profile" });

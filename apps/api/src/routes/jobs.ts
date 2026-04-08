@@ -53,9 +53,13 @@ jobsRouter.get("/", async (req, res) => {
               board: true,
               verificationStatus: true,
             }
-          }
+          },
+          _count: { select: { applications: true } }
         }
-      }),
+      }).then(jobs => jobs.map(job => ({
+        ...job,
+        school: job.school ? { ...job.school, isVerified: job.school.verificationStatus === 'FULLY_VERIFIED' } : null
+      }))),
       prisma.jobVacancy.count({ where })
     ]);
 
@@ -161,7 +165,12 @@ jobsRouter.get("/:id", async (req, res) => {
 
     if (!job) return res.status(404).json({ error: "Job not found" });
     
-    res.json({ job });
+    // Map verificationStatus → isVerified for frontend
+    const jobWithVerified = {
+      ...job,
+      school: job.school ? { ...job.school, isVerified: job.school.verificationStatus === 'FULLY_VERIFIED' } : null
+    };
+    res.json({ job: jobWithVerified });
   } catch (err: any) {
     res.status(500).json({ error: "Failed to fetch job details" });
   }

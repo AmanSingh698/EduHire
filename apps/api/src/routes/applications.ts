@@ -166,7 +166,11 @@ applicationsRouter.get("/school", authenticateJWT, authorizeRole(["SCHOOL_ADMIN"
             city: true,
             qualification: true,
             experienceYears: true,
-            photoUrl: true
+            photoUrl: true,
+            bio: true,
+            resumeUrl: true,
+            phone: true,
+            subjects: true,
           }
         }
       },
