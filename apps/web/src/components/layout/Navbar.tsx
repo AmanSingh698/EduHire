@@ -99,7 +99,8 @@ export default function Navbar() {
                 color: isScrolled ? "#0f172a" : "#fff",
                 letterSpacing: "-0.03em",
               }}>
-                Edu<span style={{ color: "#818cf8" }}>Hire</span>
+                {/* Edu<span style={{ color: "#818cf8" }}>Hire</span> */}
+                U<span style={{ color: "#818cf8" }}>18</span>
               </span>
             </Link>
 

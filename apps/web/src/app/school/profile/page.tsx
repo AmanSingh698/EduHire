@@ -164,8 +164,11 @@ export default function SchoolProfilePage() {
               <div style={{ width: 28, height: 28, borderRadius: "8px", background: "linear-gradient(135deg, #4f46e5, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <GraduationCap size={14} color="#fff" />
               </div>
-              <span style={{ fontWeight: 800, fontSize: "1rem", color: "var(--text-primary)", fontFamily: "Plus Jakarta Sans, sans-serif" }}>
+              {/* <span style={{ fontWeight: 800, fontSize: "1rem", color: "var(--text-primary)", fontFamily: "Plus Jakarta Sans, sans-serif" }}>
                 Edu<span style={{ color: "#4f46e5" }}>Hire</span>
+              </span> */}
+              <span style={{ fontWeight: 800, fontSize: "1rem", color: "var(--text-primary)", fontFamily: "Plus Jakarta Sans, sans-serif" }}>
+                U<span style={{ color: "#4f46e5" }}>18</span>
               </span>
             </div>
           </div>

@@ -101,8 +101,11 @@ export default function TeacherDashboard() {
             <div style={{ width: 32, height: 32, borderRadius: "9px", background: "linear-gradient(135deg, #4f46e5, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <GraduationCap size={16} color="#fff" />
             </div>
-            <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, fontSize: "1.05rem", color: "var(--text-primary)" }}>
+            {/* <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, fontSize: "1.05rem", color: "var(--text-primary)" }}>
               Edu<span style={{ color: "#4f46e5" }}>Hire</span>
+            </span> */}
+            <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, fontSize: "1.05rem", color: "var(--text-primary)" }}>
+              U<span style={{ color: "#4f46e5" }}>18</span>
             </span>
           </Link>
         </div>

@@ -72,8 +72,11 @@ export default function LoginPage() {
             }}>
               <GraduationCap size={18} color="#fff" />
             </div>
-            <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, fontSize: "1.2rem", color: "var(--text-primary)" }}>
+            {/* <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, fontSize: "1.2rem", color: "var(--text-primary)" }}>
               Edu<span style={{ color: "#4f46e5" }}>Hire</span>
+            </span> */}
+            <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, fontSize: "1.2rem", color: "var(--text-primary)" }}>
+              U<span style={{ color: "#4f46e5" }}>18</span>
             </span>
           </Link>
 
@@ -82,7 +85,7 @@ export default function LoginPage() {
               Welcome back 👋
             </h1>
             <p style={{ color: "var(--text-muted)", marginBottom: "2rem", fontSize: "0.9rem" }}>
-              Sign in to continue to your EduHire account.
+              Sign in to continue to your U18 account.
             </p>
 
             {/* Role toggle */}

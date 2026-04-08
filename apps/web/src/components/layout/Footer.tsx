@@ -110,8 +110,11 @@ export default function Footer() {
               }}>
                 <GraduationCap size={18} color="#fff" />
               </div>
-              <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, fontSize: "1.2rem", color: "#fff" }}>
+              {/* <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, fontSize: "1.2rem", color: "#fff" }}>
                 Edu<span style={{ color: "#818cf8" }}>Hire</span>
+              </span> */}
+              <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, fontSize: "1.2rem", color: "#fff" }}>
+                U<span style={{ color: "#818cf8" }}>18</span>
               </span>
             </Link>
             <p style={{ fontSize: "0.85rem", lineHeight: 1.7, marginBottom: "1.25rem", color: "var(--gray-500)" }}>
