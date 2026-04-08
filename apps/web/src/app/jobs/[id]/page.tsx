@@ -23,6 +23,8 @@ export default function JobDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
@@ -38,6 +40,12 @@ export default function JobDetailsPage() {
           const appsRes = await api.get<{ applications: Application[] }>("/api/applications/me");
           const applied = appsRes.applications.some(a => a.jobId === id);
           setHasApplied(applied);
+
+          // Check if saved
+          const savedRes = await api.get<{ ids: string[] }>("/api/saved-jobs/ids");
+          if (savedRes.ids.includes(id as string)) {
+            setIsSaved(true);
+          }
         }
       } catch (err) {
         setError("Job not found or failed to load");
@@ -66,6 +74,29 @@ export default function JobDetailsPage() {
       setApplyError(err.message || "Failed to submit application. Please try again.");
     } finally {
       setIsApplying(false);
+    }
+  };
+
+  const toggleSave = async () => {
+    if (!user) {
+      router.push(`/auth/login?redirect=/jobs/${id}`);
+      return;
+    }
+    if (user.role !== "TEACHER") return;
+
+    setIsSaving(true);
+    try {
+      if (isSaved) {
+        await api.delete(`/api/saved-jobs/${id}`);
+        setIsSaved(false);
+      } else {
+        await api.post("/api/saved-jobs", { jobId: id });
+        setIsSaved(true);
+      }
+    } catch (err) {
+      alert("Failed to update saved status");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -141,7 +172,15 @@ export default function JobDetailsPage() {
                   </div>
                   <div style={{ display: "flex", gap: "0.5rem" }}>
                     <button className="btn btn-outline" style={{ padding: "0.5rem" }}><Share2 size={18} /></button>
-                    <button className="btn btn-outline" style={{ padding: "0.5rem" }}><Bookmark size={18} /></button>
+                    <button 
+                      className={`btn btn-outline ${isSaved ? "saved-active" : ""}`} 
+                      style={{ padding: "0.5rem", color: isSaved ? "var(--primary-600)" : "inherit", borderColor: isSaved ? "var(--primary-300)" : "inherit", background: isSaved ? "var(--primary-50)" : "transparent" }}
+                      onClick={toggleSave}
+                      disabled={isSaving}
+                      title={isSaved ? "Unsave job" : "Save job"}
+                    >
+                      <Bookmark size={18} fill={isSaved ? "currentColor" : "none"} />
+                    </button>
                   </div>
                 </div>
 

@@ -115,6 +115,7 @@ model TeacherProfile {
 
   subjects        TeacherSubject[]
   applications    Application[]
+  savedJobs       SavedJob[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -194,11 +195,24 @@ model JobVacancy {
   viewsCount   Int        @default(0)
 
   applications Application[]
+  savedByTeachers SavedJob[]
 
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
   @@map("job_vacancies")
+}
+
+model SavedJob {
+  id        String         @id @default(cuid())
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  jobId     String
+  job       JobVacancy     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+
+  @@unique([teacherId, jobId])
+  @@map("saved_jobs")
 }
 
 model Application {

@@ -46,7 +46,11 @@ function JobCard({ job, saved, onSave, hasApplied }: { job: JobVacancy; saved: b
                 </h3>
               </Link>
               <button
-                onClick={onSave}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSave();
+                }}
                 style={{
                   background: "none", border: "none", cursor: "pointer",
                   color: saved ? "var(--primary-600)" : "var(--text-muted)",
@@ -164,15 +168,23 @@ export default function JobsPage() {
     salaryMin: 0,
   });
 
-  // Fetch teacher's applied job IDs once on mount
+  // Fetch teacher's applied & saved job IDs once on mount
   useEffect(() => {
     if (user?.role !== "TEACHER") return;
-    api.get<{ applications: Application[] }>("/api/applications/me")
-      .then((res) => {
-        const ids = new Set((res?.applications ?? []).map((a) => a.jobId));
-        setAppliedJobIds(ids);
-      })
-      .catch(() => {}); // silently ignore if unauthenticated
+
+    Promise.all([
+      api.get<{ applications: Application[] }>("/api/applications/me"),
+      api.get<{ ids: string[] }>("/api/saved-jobs/ids")
+    ])
+    .then(([appsRes, savedRes]) => {
+      if (appsRes?.applications) {
+        setAppliedJobIds(new Set(appsRes.applications.map(a => a.jobId)));
+      }
+      if (savedRes?.ids) {
+        setSavedJobs(new Set(savedRes.ids));
+      }
+    })
+    .catch(() => {}); // silently ignore if unauthenticated
   }, [user]);
 
   const loadJobs = async () => {
@@ -400,11 +412,32 @@ export default function JobsPage() {
                         key={job.id} job={job}
                         saved={savedJobs.has(job.id)}
                         hasApplied={appliedJobIds.has(job.id)}
-                        onSave={() => setSavedJobs((prev) => {
-                          const next = new Set(prev);
-                          next.has(job.id) ? next.delete(job.id) : next.add(job.id);
-                          return next;
-                        })}
+                        onSave={async () => {
+                          if (!user) return;
+                          const isCurrentlySaved = savedJobs.has(job.id);
+                          
+                          // Optimistic update
+                          setSavedJobs((prev) => {
+                            const next = new Set(prev);
+                            isCurrentlySaved ? next.delete(job.id) : next.add(job.id);
+                            return next;
+                          });
+
+                          try {
+                            if (isCurrentlySaved) {
+                              await api.delete(`/api/saved-jobs/${job.id}`);
+                            } else {
+                              await api.post("/api/saved-jobs", { jobId: job.id });
+                            }
+                          } catch (err) {
+                            // Revert on failure
+                            setSavedJobs((prev) => {
+                              const next = new Set(prev);
+                              isCurrentlySaved ? next.add(job.id) : next.delete(job.id);
+                              return next;
+                            });
+                          }
+                        }}
                       />
                     ))}
                   </div>

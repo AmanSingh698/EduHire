@@ -8,6 +8,7 @@ import { applicationsRouter } from "./routes/applications";
 import { schoolsRouter } from "./routes/schools";
 import { teachersRouter } from "./routes/teachers";
 import { searchRouter } from "./routes/search";
+import { savedJobsRouter } from "./routes/savedJobs";
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use("/api/applications", applicationsRouter);
 app.use("/api/schools",      schoolsRouter);
 app.use("/api/teachers",     teachersRouter);
 app.use("/api/search",       searchRouter);
+app.use("/api/saved-jobs",   savedJobsRouter);
 
 /* ── 404 handler ────────────────────────────────── */
 app.use((_req, res) => {
