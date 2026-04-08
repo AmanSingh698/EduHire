@@ -10,7 +10,8 @@ import {
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { api } from "@/lib/api";
-import { JobVacancy, BoardType, JobType } from "@/lib/types";
+import { JobVacancy, BoardType, JobType, Application } from "@/lib/types";
+import { useUser } from "@/lib/useUser";
 
 const SUBJECTS = ["Mathematics", "Science", "English", "Hindi", "Social Studies", "Computer Science", "Arts", "Physical Education"];
 const BOARDS: BoardType[]   = ["CBSE", "ICSE", "STATE", "IB", "IGCSE"];
@@ -18,7 +19,7 @@ const JOB_TYPES: JobType[] = ["FULL_TIME", "PART_TIME", "CONTRACT", "VISITING"];
 const STATES   = ["Delhi", "Maharashtra", "Karnataka", "Uttar Pradesh", "Rajasthan", "Telangana", "Himachal Pradesh"];
 
 /* ── Job Card ────────────────────────────────────── */
-function JobCard({ job, saved, onSave }: { job: JobVacancy; saved: boolean; onSave: () => void }) {
+function JobCard({ job, saved, onSave, hasApplied }: { job: JobVacancy; saved: boolean; onSave: () => void; hasApplied: boolean }) {
   return (
     <motion.div layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
       <div className="card" style={{ padding: "1.5rem" }}>
@@ -98,9 +99,23 @@ function JobCard({ job, saved, onSave }: { job: JobVacancy; saved: boolean; onSa
                 <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                   {job._count?.applications || 0} applied
                 </span>
-                <Link href={`/jobs/${job.id}`} className="btn btn-primary btn-sm">
-                  Apply Now <ChevronRight size={14} />
-                </Link>
+                {hasApplied ? (
+                  <span style={{
+                    display: "flex", alignItems: "center", gap: "0.3rem",
+                    fontSize: "0.8rem", fontWeight: 700,
+                    color: "var(--success-700)",
+                    background: "var(--success-50)",
+                    border: "1px solid var(--success-200)",
+                    borderRadius: "var(--radius-lg)",
+                    padding: "0.35rem 0.75rem",
+                  }}>
+                    <CheckCircle size={13} /> Applied
+                  </span>
+                ) : (
+                  <Link href={`/jobs/${job.id}`} className="btn btn-primary btn-sm">
+                    Apply Now <ChevronRight size={14} />
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -131,7 +146,9 @@ function FilterCheckbox({ label, checked, onChange }: { label: string; checked: 
 
 /* ── Page ────────────────────────────────────────── */
 export default function JobsPage() {
+  const { user } = useUser();
   const [jobs, setJobs] = useState<JobVacancy[]>([]);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [locationSearch, setLocationSearch] = useState("");
@@ -147,6 +164,17 @@ export default function JobsPage() {
     salaryMin: 0,
   });
 
+  // Fetch teacher's applied job IDs once on mount
+  useEffect(() => {
+    if (user?.role !== "TEACHER") return;
+    api.get<{ applications: Application[] }>("/api/applications/me")
+      .then((res) => {
+        const ids = new Set((res?.applications ?? []).map((a) => a.jobId));
+        setAppliedJobIds(ids);
+      })
+      .catch(() => {}); // silently ignore if unauthenticated
+  }, [user]);
+
   const loadJobs = async () => {
     setIsLoading(true);
     try {
@@ -160,7 +188,7 @@ export default function JobsPage() {
       };
       const res = await api.get<{ jobs: JobVacancy[] }>("/api/search/jobs", params);
       
-      let sorted = res.jobs;
+      let sorted: JobVacancy[] = res?.jobs ?? [];
       if (sortBy === "salary") {
         sorted = [...sorted].sort((a, b) => (b.salaryMax || 0) - (a.salaryMax || 0));
       }
@@ -371,6 +399,7 @@ export default function JobsPage() {
                       <JobCard
                         key={job.id} job={job}
                         saved={savedJobs.has(job.id)}
+                        hasApplied={appliedJobIds.has(job.id)}
                         onSave={() => setSavedJobs((prev) => {
                           const next = new Set(prev);
                           next.has(job.id) ? next.delete(job.id) : next.add(job.id);

@@ -30,14 +30,14 @@ searchRouter.get("/jobs", async (req, res) => {
       where,
       include: {
         school: {
-          select: { name: true, logoUrl: true, city: true, state: true }
+          select: { name: true, logoUrl: true, city: true, state: true, verificationStatus: true }
         }
       },
       orderBy: { createdAt: "desc" },
       take: 50
     });
 
-    res.json({ results, total: results.length });
+    res.json({ jobs: results, total: results.length });
   } catch (err) {
     res.status(500).json({ error: "Search failed" });
   }
