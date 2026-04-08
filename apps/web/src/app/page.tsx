@@ -5,11 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import {
   Search, MapPin, BookOpen, Building2, GraduationCap,
   ArrowRight, CheckCircle, Star, TrendingUp, Sparkles,
-  Users, Briefcase, Award, ChevronRight, Play, Shield,
+  Users, Briefcase, Award, ChevronRight, Shield,
   Clock, Zap, Heart
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { api } from "@/lib/api";
+import { JobVacancy } from "@/lib/types";
 
 /* ─── Animated counter ─────────────────────────── */
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -41,7 +43,16 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 }
 
 /* ─── Job Card ──────────────────────────────────── */
-function FeaturedJobCard({ job, index }: { job: any; index: number }) {
+function FeaturedJobCard({ job, index }: { job: JobVacancy; index: number }) {
+  const salary = job.salaryMin
+    ? `₹${Math.round(job.salaryMin / 1000)}k–${Math.round((job.salaryMax ?? job.salaryMin) / 1000)}k/mo`
+    : "Salary not disclosed";
+  const posted = new Date(job.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  const COLORS = [
+    ["#4f46e5", "#7c3aed"], ["#0891b2", "#0e7490"], ["#059669", "#047857"],
+  ];
+  const [c1, c2] = COLORS[index % COLORS.length];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 32 }}
@@ -50,56 +61,67 @@ function FeaturedJobCard({ job, index }: { job: any; index: number }) {
       transition={{ duration: 0.5, delay: index * 0.1 }}
     >
       <Link href={`/jobs/${job.id}`} style={{ textDecoration: "none" }}>
-        <div className="card" style={{ padding: "1.5rem", cursor: "pointer" }}>
+        <div className="card" style={{ padding: "1.5rem", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
+          onMouseOver={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "var(--shadow-lg)"; }}
+          onMouseOut={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; (e.currentTarget as HTMLDivElement).style.boxShadow = ""; }}
+        >
           <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem", marginBottom: "1rem" }}>
             <div style={{
               width: 48, height: 48, borderRadius: "12px",
-              background: `linear-gradient(135deg, ${job.color1}, ${job.color2})`,
+              background: `linear-gradient(135deg, ${c1}, ${c2})`,
               display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0, fontSize: "1.25rem",
+              flexShrink: 0, fontSize: "1.25rem", overflow: "hidden",
             }}>
-              {job.emoji}
+              {job.school?.logoUrl
+                ? <img src={job.school.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : "🏫"}
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem" }}>
                 <div>
                   <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "0.2rem" }}>
                     {job.title}
                   </h3>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                    <Building2 size={13} />
-                    {job.school}
-                    <span className="verified-badge" style={{ marginLeft: "0.25rem", fontSize: "0.68rem" }}>
-                      <CheckCircle size={10} /> Verified
-                    </span>
+                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "0.3rem", flexWrap: "wrap" }}>
+                    <Building2 size={12} />
+                    {job.school?.name}
+                    {job.school?.isVerified && (
+                      <span className="verified-badge" style={{ fontSize: "0.68rem" }}>
+                        <CheckCircle size={10} /> Verified
+                      </span>
+                    )}
                   </p>
                 </div>
-                <span className="badge badge-primary" style={{ flexShrink: 0, fontSize: "0.72rem" }}>{job.type}</span>
+                <span className="badge badge-primary" style={{ flexShrink: 0, fontSize: "0.7rem", whiteSpace: "nowrap" }}>
+                  {job.jobType.replace("_", " ")}
+                </span>
               </div>
             </div>
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
-              <MapPin size={12} /> {job.location}
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
-              <BookOpen size={12} /> {job.board}
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", color: "var(--success-600)", fontWeight: 600 }}>
-              ₹{job.salaryMin}–{job.salaryMax}/mo
+            {job.city && (
+              <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                <MapPin size={11} /> {job.city}, {job.state}
+              </span>
+            )}
+            {job.board && (
+              <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                <BookOpen size={11} /> {job.board}
+              </span>
+            )}
+            <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.78rem", color: "var(--success-600)", fontWeight: 700 }}>
+              {salary}
             </span>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-              {job.tags.map((tag: string) => (
-                <span key={tag} className="badge badge-gray" style={{ fontSize: "0.72rem" }}>{tag}</span>
-              ))}
+            <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+              {job.gradeLevel && <span className="badge badge-gray" style={{ fontSize: "0.7rem" }}>{job.gradeLevel}</span>}
+              {job.subject && <span className="badge badge-gray" style={{ fontSize: "0.7rem" }}>{job.subject}</span>}
             </div>
-            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              <Clock size={11} style={{ display: "inline", marginRight: "0.2rem" }} />
-              {job.posted}
+            <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.2rem" }}>
+              <Clock size={11} /> {posted}
             </span>
           </div>
         </div>
@@ -108,30 +130,25 @@ function FeaturedJobCard({ job, index }: { job: any; index: number }) {
   );
 }
 
-/* ─── Data ──────────────────────────────────────── */
-const FEATURED_JOBS = [
-  {
-    id: "1", title: "Mathematics Teacher", school: "Delhi Public School, Noida",
-    type: "Full-time", location: "Noida, UP", board: "CBSE",
-    salaryMin: "35,000", salaryMax: "50,000",
-    tags: ["Grade 9–10", "2+ yrs exp"], posted: "2 days ago",
-    emoji: "📐", color1: "#4f46e5", color2: "#7c3aed",
-  },
-  {
-    id: "2", title: "Science Teacher (Physics)", school: "The Heritage School",
-    type: "Full-time", location: "Bengaluru, KA", board: "ICSE",
-    salaryMin: "40,000", salaryMax: "60,000",
-    tags: ["Grade 11–12", "B.Ed preferred"], posted: "1 day ago",
-    emoji: "🔬", color1: "#0891b2", color2: "#0e7490",
-  },
-  {
-    id: "3", title: "English Language Teacher", school: "Ryan International Group",
-    type: "Full-time", location: "Mumbai, MH", board: "CBSE",
-    salaryMin: "30,000", salaryMax: "45,000",
-    tags: ["Grade 6–8", "Any exp"], posted: "5 hours ago",
-    emoji: "📚", color1: "#059669", color2: "#047857",
-  },
-];
+/* ─── Job Card Skeleton ─────────────────────────── */
+function JobCardSkeleton({ index }: { index: number }) {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.08 }}
+      style={{ padding: "1.5rem", background: "#fff", borderRadius: "var(--radius-xl)", border: "1px solid var(--border-color)" }}
+    >
+      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--gray-100)", animation: "pulse 1.5s ease-in-out infinite" }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ height: 14, background: "var(--gray-100)", borderRadius: 6, marginBottom: 8, animation: "pulse 1.5s ease-in-out infinite" }} />
+          <div style={{ height: 11, background: "var(--gray-100)", borderRadius: 6, width: "60%", animation: "pulse 1.5s ease-in-out infinite" }} />
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+        {[80, 60, 90].map(w => <div key={w} style={{ height: 10, width: w, background: "var(--gray-100)", borderRadius: 6, animation: "pulse 1.5s ease-in-out infinite" }} />)}
+      </div>
+    </motion.div>
+  );
+}
 
 const STATS = [
   { icon: <Building2 size={28} />, value: 2000, suffix: "+", label: "Verified Schools", color: "#4f46e5" },
@@ -172,6 +189,15 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"teacher" | "school">("teacher");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLocation, setSearchLocation] = useState("");
+  const [featuredJobs, setFeaturedJobs] = useState<JobVacancy[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+
+  useEffect(() => {
+    api.get<{ jobs: JobVacancy[] }>("/api/jobs", { limit: "3", page: "1" } as any)
+      .then(res => setFeaturedJobs(res.jobs ?? []))
+      .catch(() => {})
+      .finally(() => setJobsLoading(false));
+  }, []);
 
   const subjects = ["Mathematics", "Science", "English", "Hindi", "Social Studies", "Computer Science", "Physics", "Chemistry"];
 
@@ -510,9 +536,18 @@ export default function HomePage() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.25rem" }}>
-              {FEATURED_JOBS.map((job, i) => (
-                <FeaturedJobCard key={job.id} job={job} index={i} />
-              ))}
+              {jobsLoading
+                ? [0, 1, 2].map(i => <JobCardSkeleton key={i} index={i} />)
+                : featuredJobs.length > 0
+                  ? featuredJobs.map((job, i) => <FeaturedJobCard key={job.id} job={job} index={i} />)
+                  : (
+                    <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>
+                      <Briefcase size={32} style={{ margin: "0 auto 0.75rem", display: "block", opacity: 0.4 }} />
+                      <p style={{ marginBottom: "1rem" }}>No jobs posted yet. Be the first school to post!</p>
+                      <Link href="/auth/register" className="btn btn-primary" style={{ display: "inline-flex" }}>Post a Vacancy</Link>
+                    </div>
+                  )
+              }
             </div>
           </div>
         </section>
@@ -701,6 +736,7 @@ export default function HomePage() {
       <style>{`
         .subject-tag:hover { background: rgba(255,255,255,0.15) !important; color: #fff !important; border-color: rgba(99,102,241,0.4) !important; }
         @media (max-width: 640px) { .divider-vert { display: none; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}</style>
     </>
   );

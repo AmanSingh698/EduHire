@@ -24,6 +24,9 @@ export default function JobDetailsPage() {
   const [isApplying, setIsApplying] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const [coverLetter, setCoverLetter] = useState("");
+  const [showCoverLetter, setShowCoverLetter] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,17 +54,16 @@ export default function JobDetailsPage() {
       return;
     }
     if (user.role !== "TEACHER") {
-      alert("Only teachers can apply for jobs");
+      setApplyError("Only teachers can apply for jobs.");
       return;
     }
-
+    setApplyError(null);
     setIsApplying(true);
     try {
-      await api.post("/api/applications", { jobId: id });
+      await api.post("/api/applications", { jobId: id, coverLetter: coverLetter.trim() || undefined });
       setHasApplied(true);
-      alert("Application submitted successfully!");
     } catch (err: any) {
-      alert(err.message || "Failed to submit application");
+      setApplyError(err.message || "Failed to submit application. Please try again.");
     } finally {
       setIsApplying(false);
     }
@@ -194,30 +196,75 @@ export default function JobDetailsPage() {
             {/* Right Sidebar */}
             <div style={{ position: "sticky", top: "100px", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
               {/* Apply Card */}
-              <div className="card" style={{ padding: "1.5rem", textAlign: "center" }}>
-                <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.5rem" }}>Want this role?</h3>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.25rem" }}>
-                  Submit your application now and stand out to the school recruiters.
+              <div className="card" style={{ padding: "1.5rem" }}>
+                <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.35rem" }}>Want this role?</h3>
+                <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "1.25rem" }}>
+                  Submit your application and stand out to school recruiters.
                 </p>
 
                 {hasApplied ? (
-                  <div style={{ padding: "1rem", background: "var(--success-50)", border: "1px solid var(--success-200)", borderRadius: "var(--radius-lg)", color: "var(--success-700)", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                    <CheckCircle size={18} /> Already Applied
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleApply}
-                    disabled={isApplying}
-                    className="btn btn-primary"
-                    style={{ width: "100%", justifyContent: "center", padding: "0.85rem" }}
+                  <motion.div
+                    initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                    style={{ padding: "1rem", background: "var(--success-50)", border: "1px solid var(--success-200)", borderRadius: "var(--radius-lg)", color: "var(--success-700)", fontWeight: 700, display: "flex", flexDirection: "column", alignItems: "center", gap: "0.4rem", textAlign: "center" }}
                   >
-                    {isApplying ? "Applying..." : "Apply Now"} <Send size={18} style={{ marginLeft: "0.5rem" }} />
-                  </button>
-                )}
+                    <CheckCircle size={22} />
+                    <div>Application Submitted!</div>
+                    <div style={{ fontSize: "0.78rem", fontWeight: 500, color: "var(--success-600)" }}>The school will review your profile and get back to you.</div>
+                  </motion.div>
+                ) : (
+                  <>
+                    {/* Cover letter toggle */}
+                    <AnimatePresence>
+                      {!showCoverLetter ? (
+                        <button
+                          onClick={() => setShowCoverLetter(true)}
+                          style={{ width: "100%", padding: "0.6rem", marginBottom: "0.75rem", background: "var(--gray-50)", border: "1px dashed var(--border-color)", borderRadius: "var(--radius-lg)", fontSize: "0.8rem", color: "var(--text-muted)", cursor: "pointer", fontWeight: 600, transition: "all 0.15s" }}
+                        >
+                          + Add a cover letter (optional)
+                        </button>
+                      ) : (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} style={{ marginBottom: "0.75rem" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+                            <label style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-secondary)" }}>Cover Letter</label>
+                            <button onClick={() => { setShowCoverLetter(false); setCoverLetter(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: "0.75rem" }}>Remove</button>
+                          </div>
+                          <textarea
+                            value={coverLetter}
+                            onChange={e => setCoverLetter(e.target.value)}
+                            rows={5}
+                            maxLength={1000}
+                            placeholder="Tell the school why you're a great fit for this role..."
+                            className="input"
+                            style={{ resize: "vertical", fontSize: "0.82rem" }}
+                          />
+                          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", textAlign: "right", marginTop: "0.25rem" }}>{coverLetter.length}/1000</div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
-                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "1rem" }}>
-                  By applying, you agree to our terms of service.
-                </p>
+                    {/* Error */}
+                    {applyError && (
+                      <div style={{ padding: "0.65rem 0.85rem", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: "var(--radius-lg)", color: "#991b1b", fontSize: "0.8rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+                        {applyError}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={handleApply}
+                      disabled={isApplying}
+                      className="btn btn-primary"
+                      style={{ width: "100%", justifyContent: "center", padding: "0.85rem" }}
+                    >
+                      {isApplying ? "Submitting..." : <>Apply Now <Send size={16} style={{ marginLeft: "0.4rem" }} /></>}
+                    </button>
+
+                    {!user && (
+                      <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.75rem", textAlign: "center" }}>
+                        <Link href={`/auth/login?redirect=/jobs/${id}`} style={{ color: "var(--primary-600)", fontWeight: 600 }}>Log in</Link> to apply for this job
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* School Preview */}

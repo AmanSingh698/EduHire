@@ -1,0 +1,18 @@
+-- CreateTable
+CREATE TABLE "saved_jobs" (
+    "id" TEXT NOT NULL,
+    "teacherId" TEXT NOT NULL,
+    "jobId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "saved_jobs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "saved_jobs_teacherId_jobId_key" ON "saved_jobs"("teacherId", "jobId");
+
+-- AddForeignKey
+ALTER TABLE "saved_jobs" ADD CONSTRAINT "saved_jobs_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "teacher_profiles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "saved_jobs" ADD CONSTRAINT "saved_jobs_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "job_vacancies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
