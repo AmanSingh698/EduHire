@@ -21,11 +21,11 @@ jobsRouter.get("/", async (req, res) => {
       status: JobStatus.ACTIVE,
     };
 
-    if (subject) where.subject = { contains: String(subject), mode: "insensitive" };
-    if (board) where.board = board as Board;
+    if (subject) where.subject = { in: String(subject).split(",") };
+    if (board) where.board = { in: String(board).split(",") as Board[] };
     if (city) where.city = { contains: String(city), mode: "insensitive" };
-    if (state) where.state = { contains: String(state), mode: "insensitive" };
-    if (type) where.jobType = type as JobType;
+    if (state) where.state = { in: String(state).split(",") };
+    if (type) where.jobType = { in: String(type).split(",") as JobType[] };
     if (salaryMin) where.salaryMin = { gte: Number(salaryMin) };
 
     if (q) {

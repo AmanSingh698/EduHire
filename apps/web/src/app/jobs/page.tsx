@@ -132,8 +132,8 @@ function JobCard({ job, saved, onSave, hasApplied }: { job: JobVacancy; saved: b
 /* ── Filter Checkbox ─────────────────────────────── */
 function FilterCheckbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
   return (
-    <label className="filter-checkbox" onClick={onChange} style={{ userSelect: "none", display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer", padding: "0.25rem 0" }}>
-      <input type="checkbox" checked={checked} onChange={() => {}} style={{ display: "none" }} />
+    <label className="filter-checkbox" onClick={(e) => { e.preventDefault(); onChange(); }} style={{ userSelect: "none", display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer", padding: "0.25rem 0" }}>
+      <input type="checkbox" checked={checked} readOnly style={{ display: "none" }} />
       <div style={{
         width: 16, height: 16, borderRadius: "4px", flexShrink: 0,
         border: checked ? "none" : "1.5px solid var(--gray-300)",
@@ -286,7 +286,7 @@ export default function JobsPage() {
               key={val}
               label={val === 0 ? "Any" : `₹${(val / 1000).toFixed(0)}k+`}
               checked={filters.salaryMin === val}
-              onChange={() => setFilters((p) => ({ ...p, salaryMin: val }))}
+              onChange={() => setFilters((p) => ({ ...p, salaryMin: p.salaryMin === val ? 0 : val }))}
             />
           ))}
         </div>
@@ -297,12 +297,12 @@ export default function JobsPage() {
   return (
     <>
       <Navbar />
-      <main style={{ background: "var(--gray-50)", minHeight: "100vh", paddingTop: "68px" }}>
+      <main style={{ background: "var(--gray-50)", minHeight: "100vh" }}>
 
         {/* Search header */}
         <div style={{
           background: "linear-gradient(135deg, #0f172a, #1e1b4b)",
-          padding: "2.5rem 0",
+          padding: "calc(2.5rem + 68px) 0 2.5rem",
         }}>
           <div className="container-custom">
             <motion.h1
