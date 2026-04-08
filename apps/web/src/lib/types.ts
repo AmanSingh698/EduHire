@@ -66,7 +66,8 @@ export interface JobVacancy {
   city: string;
   state: string;
   deadline: string | null;
-  isActive: boolean;
+  status: "ACTIVE" | "CLOSED" | "DRAFT";
+  openings?: number;
   createdAt: string;
   school: Pick<SchoolProfile, "id" | "name" | "city" | "state" | "board" | "logoUrl" | "isVerified">;
   _count?: { applications: number };

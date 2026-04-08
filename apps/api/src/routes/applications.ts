@@ -120,6 +120,26 @@ applicationsRouter.get("/job/:jobId", authenticateJWT, authorizeRole(["SCHOOL_AD
   }
 });
 
+/* PATCH /api/applications/mark-viewed — marks all pending apps as viewed for the school */
+applicationsRouter.patch("/mark-viewed", authenticateJWT, authorizeRole(["SCHOOL_ADMIN"]), async (req: AuthRequest, res) => {
+  try {
+    const school = await prisma.school.findUnique({ where: { userId: req.user!.id } });
+    if (!school) return res.status(404).json({ error: "School not found" });
+
+    const result = await prisma.application.updateMany({
+      where: {
+        job: { schoolId: school.id },
+        status: "PENDING"
+      },
+      data: { status: "VIEWED" }
+    });
+
+    res.json({ message: "Applications marked as viewed", count: result.count });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to mark applications as viewed" });
+  }
+});
+
 /* PATCH /api/applications/:id/status — school updates status */
 applicationsRouter.patch("/:id/status", authenticateJWT, authorizeRole(["SCHOOL_ADMIN"]), async (req: AuthRequest, res) => {
   try {

@@ -131,7 +131,7 @@ export default function SchoolProfilePage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--gray-50)" }}>
+    <>
       {/* Toast */}
       <AnimatePresence>
         {toast && (
@@ -152,36 +152,15 @@ export default function SchoolProfilePage() {
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--border-color)", padding: "1rem 0", position: "sticky", top: 0, zIndex: 40 }}>
-        <div className="container-custom" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <Link href="/school/dashboard" style={{ display: "flex", alignItems: "center", gap: "0.4rem", textDecoration: "none", color: "var(--text-muted)", fontSize: "0.875rem" }}>
-              <ChevronLeft size={16} /> Dashboard
-            </Link>
-            <span style={{ color: "var(--border-color)" }}>|</span>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <div style={{ width: 28, height: 28, borderRadius: "8px", background: "linear-gradient(135deg, #4f46e5, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <GraduationCap size={14} color="#fff" />
-              </div>
-              {/* <span style={{ fontWeight: 800, fontSize: "1rem", color: "var(--text-primary)", fontFamily: "Plus Jakarta Sans, sans-serif" }}>
-                Edu<span style={{ color: "#4f46e5" }}>Hire</span>
-              </span> */}
-              <span style={{ fontWeight: 800, fontSize: "1rem", color: "var(--text-primary)", fontFamily: "Plus Jakarta Sans, sans-serif" }}>
-                U<span style={{ color: "#4f46e5" }}>18</span>
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="btn btn-primary"
-            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-          >
-            {isSaving ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Save size={16} />}
-            {isSaving ? "Saving..." : "Save Changes"}
-          </button>
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--border-color)", padding: "1rem 2rem", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 }}>
+        <div>
+          <h1 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>School Profile</h1>
+          <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Manage your public school details</p>
         </div>
+        <button onClick={handleSave} disabled={isSaving} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+          {isSaving ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Save size={16} />}
+          {isSaving ? "Saving..." : "Save Changes"}
+        </button>
       </div>
 
       <div className="container-custom" style={{ padding: "2rem 1.5rem" }}>
@@ -354,7 +333,7 @@ export default function SchoolProfilePage() {
         @media (max-width: 600px) { .form-grid-2 { grid-template-columns: 1fr !important; } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       `}</style>
-    </div>
+    </>
   );
 }
 

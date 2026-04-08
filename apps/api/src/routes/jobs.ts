@@ -99,6 +99,7 @@ jobsRouter.post("/", authenticateJWT, authorizeRole(["SCHOOL_ADMIN"]), async (re
     const { 
       title, subject, board, gradeLevel, jobType, 
       salaryMin, salaryMax, description, requirements, 
+      perks, experience, qualification,
       deadline, city, state, openings 
     } = req.body;
 
@@ -124,6 +125,9 @@ jobsRouter.post("/", authenticateJWT, authorizeRole(["SCHOOL_ADMIN"]), async (re
         salaryMax: salaryMax ? Number(salaryMax) : null,
         description,
         requirements,
+        perks,
+        experience,
+        qualification,
         city: city || school.city,
         state: state || school.state,
         deadline: deadline ? new Date(deadline) : null,

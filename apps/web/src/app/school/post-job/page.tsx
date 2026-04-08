@@ -67,31 +67,15 @@ export default function PostJobPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--gray-50)" }}>
-      {/* Header */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--border-color)", padding: "1rem 0" }}>
-        <div className="container-custom" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <Link href="/school/dashboard" style={{ display: "flex", alignItems: "center", gap: "0.4rem", textDecoration: "none", color: "var(--text-muted)", fontSize: "0.875rem" }}>
-              <ChevronLeft size={16} /> Dashboard
-            </Link>
-            <span style={{ color: "var(--border-color)" }}>|</span>
-            <Link href="/" style={{ display: "flex", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}>
-              <div style={{ width: 30, height: 30, borderRadius: "8px", background: "linear-gradient(135deg, #4f46e5, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <GraduationCap size={15} color="#fff" />
-              </div>
-              {/* <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, color: "var(--text-primary)" }}>
-                Edu<span style={{ color: "#4f46e5" }}>Hire</span>
-              </span> */}
-              <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, color: "var(--text-primary)" }}>
-                U<span style={{ color: "#4f46e5" }}>18</span>
-              </span>
-            </Link>
-          </div>
+    <>
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--border-color)", padding: "1rem 2rem", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 }}>
+        <div>
+          <h1 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>Post a Job</h1>
+          <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Create a new teaching vacancy</p>
         </div>
       </div>
 
-      <div className="container-custom" style={{ maxWidth: 740, paddingTop: "3rem", paddingBottom: "4rem" }}>
+      <div style={{ maxWidth: 740, margin: "0 auto", paddingTop: "3rem", paddingBottom: "4rem" }}>
         {step < 3 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
@@ -338,6 +322,6 @@ export default function PostJobPage() {
       </div>
 
       <style>{`@media (max-width: 600px) { .form-grid { grid-template-columns: 1fr !important; } }`}</style>
-    </div>
+    </>
   );
 }
