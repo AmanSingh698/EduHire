@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ──────────────────────────────────────────
+
+enum Role {
+  TEACHER
+  SCHOOL_ADMIN
+  SUPER_ADMIN
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  VISITING
+}
+
+enum JobStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  PAUSED
+}
+
+enum ApplicationStatus {
+  PENDING
+  VIEWED
+  SHORTLISTED
+  INTERVIEW
+  HIRED
+  REJECTED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  EMAIL_VERIFIED
+  UDISE_SUBMITTED
+  DOCUMENT_VERIFIED
+  FULLY_VERIFIED
+}
+
+enum SchoolType {
+  GOVERNMENT
+  PRIVATE
+  AIDED
+  INTERNATIONAL
+}
+
+enum Board {
+  CBSE
+  ICSE
+  STATE
+  IB
+  IGCSE
+  NIOS
+  OTHER
+}
+
+// ── Models ─────────────────────────────────────────
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  passwordHash      String
+  role              Role
+  isEmailVerified   Boolean  @default(false)
+  isPhoneVerified   Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  lastLoginAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  teacherProfile    TeacherProfile?
+  school            School?
+  refreshTokens     RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model TeacherProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name            String
+  phone           String?  @unique
+  photoUrl        String?
+  resumeUrl       String?
+  bio             String?
+  experienceYears Int      @default(0)
+  qualification   String?
+  specialization  String?
+  isAvailable     Boolean  @default(true)
+  city            String?
+  state           String?
+  pincode         String?
+
+  subjects        TeacherSubject[]
+  applications    Application[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("teacher_profiles")
+}
+
+model TeacherSubject {
+  id          String         @id @default(cuid())
+  teacherId   String
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject     String
+  gradeLevel  String?
+
+  @@map("teacher_subjects")
+}
+
+model School {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name               String
+  logoUrl            String?
+  type               SchoolType         @default(PRIVATE)
+  board              Board              @default(CBSE)
+  udiseCode          String?
+  registrationNo     String?
+  website            String?
+  phone              String?            @unique
+  description        String?
+
+  address            String?
+  city               String
+  state              String
+  pincode            String?
+  landmark           String?
+
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  isEmailVerified    Boolean            @default(false)
+  isDocVerified      Boolean            @default(false)
+
+  jobs               JobVacancy[]
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@map("schools")
+}
+
+model JobVacancy {
+  id           String     @id @default(cuid())
+  schoolId     String
+  school       School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  title        String
+  subject      String
+  board        Board      @default(CBSE)
+  gradeLevel   String
+  jobType      JobType    @default(FULL_TIME)
+  salaryMin    Int?
+  salaryMax    Int?
+  experience   String?
+  qualification String?
+
+  description  String
+  requirements String?
+  perks        String?
+
+  city         String
+  state        String
+  pincode      String?
+
+  status       JobStatus  @default(ACTIVE)
+  deadline     DateTime?
+  openings     Int        @default(1)
+  viewsCount   Int        @default(0)
+
+  applications Application[]
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("job_vacancies")
+}
+
+model Application {
+  id           String            @id @default(cuid())
+  jobId        String
+  job          JobVacancy        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  teacherId    String
+  teacher      TeacherProfile    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  coverLetter  String?
+  status       ApplicationStatus @default(PENDING)
+  reviewedAt   DateTime?
+  interviewAt  DateTime?
+  notes        String?
+
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@unique([jobId, teacherId])
+  @@map("applications")
+}
