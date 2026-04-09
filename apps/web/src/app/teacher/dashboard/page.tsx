@@ -1,12 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   GraduationCap, Search, Bookmark, Send, Bell, User,
   MapPin, BookOpen, Building2, CheckCircle, Clock, TrendingUp,
   Briefcase, ChevronRight, Eye, Star, Settings, LogOut,
-  BarChart2, FileText, Heart, Zap, Award, ArrowUpRight, Trash2, Edit3, Shield
+  BarChart2, FileText, Heart, Zap, Award, ArrowUpRight, Trash2, Edit3, Shield, BookmarkCheck, X
 } from "lucide-react";
 import { useLogout } from "@/lib/useLogout";
 import { useUser } from "@/lib/useUser";
@@ -24,7 +24,7 @@ const STATUS_STYLE: Record<string, { color: string; bg: string }> = {
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: <BarChart2 size={18} />, key: "dashboard" },
-  { label: "Browse Jobs", icon: <Search size={18} />, key: "jobs", href: "/jobs" },
+  { label: "Browse Jobs", icon: <Search size={18} />, key: "jobs" },
   { label: "My Applications", icon: <Send size={18} />, key: "applications" },
   { label: "Saved Jobs", icon: <Bookmark size={18} />, key: "saved" },
   { label: "My Profile", icon: <User size={18} />, key: "profile" },
@@ -90,6 +90,91 @@ export default function TeacherDashboard() {
       setSavedJobs(prev => prev.filter(j => j.id !== id));
     } catch (err) {
       alert("Failed to unsave job");
+    }
+  };
+
+  /* ── Browse Jobs inline state ── */
+  const [browseSearch, setBrowseSearch] = useState("");
+  const [browseLocation, setBrowseLocation] = useState("");
+  const [browseJobs, setBrowseJobs] = useState<JobVacancy[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(false);
+  const [browseSavedIds, setBrowseSavedIds] = useState<Set<string>>(new Set());
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+  const [browseSortBy, setBrowseSortBy] = useState<"newest" | "salary">("newest");
+  const [browseFilters, setBrowseFilters] = useState({
+    subjects: [] as string[],
+    boards: [] as string[],
+    types: [] as string[],
+    states: [] as string[],
+    salaryMin: 0,
+  });
+
+  const BROWSE_SUBJECTS = ["Mathematics", "Science", "English", "Hindi", "Social Studies", "Computer Science", "Arts", "Physical Education"];
+  const BROWSE_BOARDS = ["CBSE", "ICSE", "STATE", "IB", "IGCSE"];
+  const BROWSE_TYPES = ["FULL_TIME", "PART_TIME", "CONTRACT", "VISITING"];
+  const BROWSE_STATES = ["Delhi", "Maharashtra", "Karnataka", "Uttar Pradesh", "Rajasthan", "Telangana", "Himachal Pradesh"];
+
+  const toggleBrowseFilter = (key: keyof typeof browseFilters, value: string | number) => {
+    setBrowseFilters((prev: any) => {
+      const arr = prev[key];
+      if (Array.isArray(arr)) {
+        return { ...prev, [key]: arr.includes(value) ? arr.filter((v: any) => v !== value) : [...arr, value] };
+      }
+      return { ...prev, [key]: value };
+    });
+  };
+
+  const clearBrowseFilters = () => setBrowseFilters({ subjects: [], boards: [], types: [], states: [], salaryMin: 0 });
+
+  const activeBrowseFilterCount = browseFilters.subjects.length + browseFilters.boards.length + browseFilters.types.length + browseFilters.states.length + (browseFilters.salaryMin > 0 ? 1 : 0);
+
+  const loadBrowseJobs = useCallback(async () => {
+    setBrowseLoading(true);
+    try {
+      const res = await api.get<{ jobs: JobVacancy[] }>("/api/search/jobs", {
+        q: browseSearch || undefined,
+        city: browseLocation || undefined,
+        subject: browseFilters.subjects.length ? browseFilters.subjects.join(",") : undefined,
+        board: browseFilters.boards.length ? browseFilters.boards.join(",") : undefined,
+        type: browseFilters.types.length ? browseFilters.types.join(",") : undefined,
+        state: browseFilters.states.length ? browseFilters.states.join(",") : undefined,
+        salaryMin: browseFilters.salaryMin > 0 ? browseFilters.salaryMin : undefined,
+      });
+      let sorted: JobVacancy[] = res?.jobs ?? [];
+      if (browseSortBy === "salary") sorted = [...sorted].sort((a, b) => (b.salaryMax || 0) - (a.salaryMax || 0));
+      setBrowseJobs(sorted);
+    } catch { /* silently ignore */ }
+    finally { setBrowseLoading(false); }
+  }, [browseSearch, browseLocation, browseFilters, browseSortBy]);
+
+  // Load browse jobs when tab is active or filters change
+  useEffect(() => {
+    if (activeNav !== "jobs") return;
+    const t = setTimeout(loadBrowseJobs, 300);
+    return () => clearTimeout(t);
+  }, [activeNav, browseSearch, browseLocation, browseFilters, browseSortBy, loadBrowseJobs]);
+
+  // Load applied + saved IDs once
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([
+      api.get<{ applications: Application[] }>("/api/applications/me"),
+      api.get<{ ids: string[] }>("/api/saved-jobs/ids"),
+    ]).then(([appsRes, savedRes]) => {
+      if (appsRes?.applications) setAppliedIds(new Set(appsRes.applications.map(a => a.jobId)));
+      if (savedRes?.ids) setBrowseSavedIds(new Set(savedRes.ids));
+    }).catch(() => {});
+  }, [user]);
+
+  const toggleBrowseSave = async (jobId: string) => {
+    if (!user) return;
+    const isSaved = browseSavedIds.has(jobId);
+    setBrowseSavedIds(prev => { const n = new Set(prev); isSaved ? n.delete(jobId) : n.add(jobId); return n; });
+    try {
+      if (isSaved) await api.delete(`/api/saved-jobs/${jobId}`);
+      else await api.post("/api/saved-jobs", { jobId });
+    } catch {
+      setBrowseSavedIds(prev => { const n = new Set(prev); isSaved ? n.add(jobId) : n.delete(jobId); return n; });
     }
   };
 
@@ -252,6 +337,197 @@ export default function TeacherDashboard() {
           <Link href="/jobs" className="btn btn-outline" style={{ width: "100%", justifyContent: "center", marginTop: "0.85rem", fontSize: "0.825rem" }}>
             Browse All Jobs <ArrowUpRight size={14} />
           </Link>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBrowseJobs = () => (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+
+      {/* Fixed search bar */}
+      <div style={{
+        flexShrink: 0,
+        padding: "1rem 1.5rem",
+        borderBottom: "1px solid var(--border-color)",
+        background: "var(--gray-50)",
+      }}>
+        <div style={{
+          display: "flex", gap: "0.5rem", flexWrap: "wrap",
+          background: "#fff", border: "1px solid var(--border-color)",
+          borderRadius: "var(--radius-xl)", padding: "0.4rem",
+          boxShadow: "var(--shadow-sm)",
+        }}>
+        <div style={{ flex: "2 1 160px", display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem" }}>
+          <Search size={15} style={{ color: "var(--primary-500)", flexShrink: 0 }} />
+          <input value={browseSearch} onChange={e => setBrowseSearch(e.target.value)} placeholder="Job title, subject, school..."
+            style={{ border: "none", outline: "none", fontSize: "0.875rem", width: "100%", color: "var(--text-primary)", background: "transparent" }} />
+          {browseSearch && <button onClick={() => setBrowseSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, display: "flex" }}><X size={14} /></button>}
+        </div>
+        <div style={{ flex: "1 1 120px", display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", borderLeft: "1px solid var(--border-color)" }}>
+          <MapPin size={15} style={{ color: "var(--primary-500)", flexShrink: 0 }} />
+          <input value={browseLocation} onChange={e => setBrowseLocation(e.target.value)} placeholder="City or state..."
+            style={{ border: "none", outline: "none", fontSize: "0.875rem", width: "100%", color: "var(--text-primary)", background: "transparent" }} />
+          {browseLocation && <button onClick={() => setBrowseLocation("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, display: "flex" }}><X size={14} /></button>}
+        </div>
+        <button onClick={loadBrowseJobs} className="btn btn-primary" style={{ borderRadius: "var(--radius-lg)", padding: "0.5rem 1rem", fontSize: "0.85rem" }}>
+          <Search size={14} /> Search
+        </button>
+        </div>
+      </div>
+
+      {/* Columns — flex:1 so they fill remaining space, overflow:hidden so children can scroll */}
+      <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "220px 1fr", overflow: "hidden" }} className="browse-grid">
+
+        {/* Filter sidebar — fixed header, scrollable body */}
+        <div style={{
+          background: "#fff", border: "1px solid var(--border-color)",
+          display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
+          borderRight: "1px solid var(--border-color)",
+        }}>
+          {/* Fixed filter header */}
+          <div style={{ flexShrink: 0, padding: "0.85rem 1rem", borderBottom: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff" }}>
+            <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              Filters
+              {activeBrowseFilterCount > 0 && (
+                <span style={{ background: "var(--primary-600)", color: "#fff", borderRadius: "50%", width: 17, height: 17, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700 }}>{activeBrowseFilterCount}</span>
+              )}
+            </span>
+            {activeBrowseFilterCount > 0 && (
+              <button onClick={clearBrowseFilters} style={{ background: "none", border: "none", fontSize: "0.75rem", color: "var(--primary-600)", cursor: "pointer", fontWeight: 600 }}>Clear all</button>
+            )}
+          </div>
+          {/* Scrollable filter content */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "0.5rem 1rem 1rem" }}>
+            {([
+              { title: "Subject", key: "subjects" as const, items: BROWSE_SUBJECTS },
+              { title: "Board", key: "boards" as const, items: BROWSE_BOARDS },
+              { title: "Job Type", key: "types" as const, items: BROWSE_TYPES },
+              { title: "State", key: "states" as const, items: BROWSE_STATES },
+            ] as const).map(({ title, key, items }) => (
+              <div key={title} style={{ marginBottom: "1rem" }}>
+                <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.4rem", paddingTop: "0.6rem", borderTop: "1px solid var(--gray-100)" }}>{title}</div>
+                {items.map((item) => (
+                  <label key={item} onClick={e => { e.preventDefault(); toggleBrowseFilter(key, item); }}
+                    style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", cursor: "pointer", padding: "0.2rem 0", userSelect: "none" }}>
+                    <div style={{
+                      width: 14, height: 14, borderRadius: "3px", flexShrink: 0,
+                      border: (browseFilters[key] as string[]).includes(item) ? "none" : "1.5px solid var(--gray-300)",
+                      background: (browseFilters[key] as string[]).includes(item) ? "var(--primary-600)" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s",
+                    }}>
+                      {(browseFilters[key] as string[]).includes(item) && <CheckCircle size={9} color="#fff" strokeWidth={3} />}
+                    </div>
+                    <span style={{ color: "var(--text-secondary)" }}>{item.replace("_", " ")}</span>
+                  </label>
+                ))}
+              </div>
+            ))}
+            {/* Min salary */}
+            <div>
+              <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.4rem", paddingTop: "0.6rem", borderTop: "1px solid var(--gray-100)" }}>Min. Salary</div>
+              {[0, 20000, 30000, 40000, 50000].map(val => (
+                <label key={val} onClick={e => { e.preventDefault(); setBrowseFilters(p => ({ ...p, salaryMin: p.salaryMin === val ? 0 : val })); }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", cursor: "pointer", padding: "0.2rem 0", userSelect: "none" }}>
+                  <div style={{
+                    width: 14, height: 14, borderRadius: "3px", flexShrink: 0,
+                    border: browseFilters.salaryMin === val ? "none" : "1.5px solid var(--gray-300)",
+                    background: browseFilters.salaryMin === val ? "var(--primary-600)" : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s",
+                  }}>
+                    {browseFilters.salaryMin === val && <CheckCircle size={9} color="#fff" strokeWidth={3} />}
+                  </div>
+                  <span style={{ color: "var(--text-secondary)" }}>{val === 0 ? "Any" : `₹${(val / 1000).toFixed(0)}k+`}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Jobs column — independently scrollable */}
+        <div style={{ overflowY: "auto", height: "100%", padding: "1rem 1.5rem 1rem 0" }}>
+          {/* Toolbar: count + sort */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.85rem", flexWrap: "wrap", gap: "0.5rem" }}>
+            <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+              <strong style={{ color: "var(--text-primary)" }}>{browseJobs.length}</strong> jobs found
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Sort:</span>
+              <select value={browseSortBy} onChange={e => setBrowseSortBy(e.target.value as any)}
+                style={{ padding: "0.3rem 0.6rem", borderRadius: "var(--radius-lg)", border: "1.5px solid var(--border-color)", fontSize: "0.8rem", color: "var(--text-primary)", background: "#fff", cursor: "pointer", outline: "none" }}>
+                <option value="newest">Newest First</option>
+                <option value="salary">Highest Salary</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Job list */}
+          {browseLoading ? (
+            <div style={{ padding: "4rem", textAlign: "center" }}><div className="spinner" style={{ margin: "0 auto" }} /></div>
+          ) : browseJobs.length === 0 ? (
+            <div style={{ background: "#fff", borderRadius: "var(--radius-xl)", border: "1px solid var(--border-color)", padding: "3rem", textAlign: "center", color: "var(--text-muted)" }}>
+              <Search size={40} style={{ margin: "0 auto 1rem", opacity: 0.3 }} />
+              <p style={{ marginBottom: "0.75rem" }}>No jobs found. Try adjusting your filters.</p>
+              {activeBrowseFilterCount > 0 && <button onClick={clearBrowseFilters} className="btn btn-outline" style={{ fontSize: "0.82rem" }}>Clear Filters</button>}
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {browseJobs.map((job, i) => {
+                const isSaved = browseSavedIds.has(job.id);
+                const hasApplied = appliedIds.has(job.id);
+                return (
+                  <motion.div key={job.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                    <div style={{ background: "#fff", borderRadius: "var(--radius-xl)", border: "1px solid var(--border-color)", padding: "1.25rem", transition: "box-shadow 0.2s" }} className="app-card">
+                      <div style={{ display: "flex", gap: "0.85rem", alignItems: "flex-start" }}>
+                        <div style={{ width: 48, height: 48, borderRadius: "12px", flexShrink: 0, background: "var(--primary-50)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.25rem", overflow: "hidden" }}>
+                          {job.school?.logoUrl ? <img src={job.school.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🏫"}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.2rem" }}>
+                            <Link href={`/jobs/${job.id}`} style={{ textDecoration: "none" }}>
+                              <h3 style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)", margin: 0 }} className="job-title-link">{job.title}</h3>
+                            </Link>
+                            <button onClick={() => toggleBrowseSave(job.id)} style={{ background: "none", border: "none", cursor: "pointer", color: isSaved ? "var(--primary-600)" : "var(--text-muted)", padding: "0.1rem", flexShrink: 0 }}>
+                              {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+                            </button>
+                          </div>
+                          <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "0.3rem", marginBottom: "0.6rem" }}>
+                            <Building2 size={12} /> {job.school?.name}
+                            {(job.school as any)?.isVerified && <span style={{ fontSize: "0.68rem", color: "var(--success-600)", display: "flex", alignItems: "center", gap: "0.2rem" }}><CheckCircle size={10} /> Verified</span>}
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", marginBottom: "0.75rem" }}>
+                            <span style={{ fontSize: "0.77rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.25rem" }}><MapPin size={11} /> {job.city}, {job.state}</span>
+                            <span style={{ fontSize: "0.77rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.25rem" }}><BookOpen size={11} /> {job.board}</span>
+                            <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--success-600)" }}>
+                              {job.salaryMin ? `₹${(job.salaryMin / 1000).toFixed(0)}k–${((job.salaryMax ?? 0) / 1000).toFixed(0)}k/mo` : "Salary not disclosed"}
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.4rem" }}>
+                            <div style={{ display: "flex", gap: "0.3rem" }}>
+                              <span className={`badge ${job.jobType === "FULL_TIME" ? "badge-primary" : "badge-gray"}`} style={{ fontSize: "0.7rem" }}>{job.jobType.replace("_", " ")}</span>
+                              <span className="badge badge-gray" style={{ fontSize: "0.7rem" }}>{job.subject}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                              <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.2rem" }}><Clock size={11} /> {new Date(job.createdAt).toLocaleDateString()}</span>
+                              {hasApplied ? (
+                                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--success-700)", background: "var(--success-50)", border: "1px solid var(--success-200)", borderRadius: "var(--radius-lg)", padding: "0.2rem 0.6rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                                  <CheckCircle size={11} /> Applied
+                                </span>
+                              ) : (
+                                <Link href={`/jobs/${job.id}`} className="btn btn-primary btn-sm" style={{ fontSize: "0.75rem", padding: "0.3rem 0.75rem" }}>
+                                  Apply <ChevronRight size={12} />
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -573,22 +849,15 @@ export default function TeacherDashboard() {
         {/* Nav items */}
         <nav style={{ padding: "0.75rem", flex: 1 }}>
           {NAV_ITEMS.map((item) => (
-            item.href ? (
-              <Link key={item.key} href={item.href} className="nav-item" style={{ textDecoration: "none" }}>
-                <span className="nav-icon">{item.icon}</span>
-                {item.label}
-              </Link>
-            ) : (
-              <button
-                key={item.key}
-                onClick={() => handleNavClick(item.key)}
-                className={`nav-item ${activeNav === item.key ? "active" : ""}`}
-                style={{ width: "100%", border: "none", background: "none", textAlign: "left" }}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                {item.label}
-              </button>
-            )
+            <button
+              key={item.key}
+              onClick={() => handleNavClick(item.key)}
+              className={`nav-item ${activeNav === item.key ? "active" : ""}`}
+              style={{ width: "100%", border: "none", background: "none", textAlign: "left" }}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              {item.label}
+            </button>
           ))}
         </nav>
 
@@ -605,7 +874,7 @@ export default function TeacherDashboard() {
       </aside>
 
       {/* Main content */}
-      <main style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
+      <main style={{ flex: 1, minWidth: 0, overflowY: activeNav === "jobs" ? "hidden" : "auto", display: "flex", flexDirection: "column" }}>
 
         {/* Top header */}
         <div style={{
@@ -631,7 +900,12 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        <div style={{ padding: "2rem" }}>
+        {activeNav === "jobs" ? (
+          <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
+            {renderBrowseJobs()}
+          </div>
+        ) : (
+          <div style={{ padding: "2rem" }}>
           {activeNav === "dashboard" && (
             <>
               {/* Welcome banner */}
@@ -694,20 +968,24 @@ export default function TeacherDashboard() {
             </>
           )}
 
+
+
           {activeNav === "applications" && renderApplications()}
           {activeNav === "saved" && renderSavedJobs()}
           {activeNav === "profile" && renderProfile()}
           {activeNav === "settings" && renderSettings()}
 
         </div>
+        )}
       </main>
 
       <style>{`
         @media (max-width: 900px) {
-          .dashboard-grid, .profile-grid { grid-template-columns: 1fr !important; }
+          .dashboard-grid, .profile-grid, .browse-grid { grid-template-columns: 1fr !important; }
         }
         .app-card:hover { box-shadow: var(--shadow-lg) !important; }
         .rec-job-card:hover { background: var(--gray-50) !important; border-color: var(--primary-200) !important; }
+        .job-title-link:hover { color: var(--primary-600) !important; }
         .spinner {
           width: 40px;
           height: 40px;

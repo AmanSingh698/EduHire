@@ -54,6 +54,46 @@ export async function apiFetch<T = unknown>(
     credentials: "include", // always send cookies
   });
 
+  // ── Silent token refresh ──────────────────────────────
+  // If the access token expired (401/403), try to refresh it once and retry.
+  if ((res.status === 401 || res.status === 403) && path !== "/api/auth/refresh-token" && path !== "/api/auth/login") {
+    try {
+      const refreshRes = await fetch(`${API_BASE}/api/auth/refresh-token`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (refreshRes.ok) {
+        // Retry the original request — new accessToken cookie is now set
+        const retryRes = await fetch(url, {
+          ...rest,
+          headers: { ...headers, ...rest.headers },
+          body: serializedBody,
+          credentials: "include",
+        });
+        const retryContentType = retryRes.headers.get("content-type") || "";
+        const retryData = retryContentType.includes("application/json")
+          ? await retryRes.json()
+          : await retryRes.text();
+        if (!retryRes.ok) {
+          throw new ApiError(retryRes.status, typeof retryData === "object" && retryData !== null && "error" in retryData ? (retryData as any).error : `Request failed: ${retryRes.status}`);
+        }
+        return retryData as T;
+      } else {
+        // Refresh token also expired — clear user cookie and redirect to login
+        document.cookie = "user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        window.location.href = "/auth/login";
+        throw new ApiError(401, "Session expired. Please log in again.");
+      }
+    } catch (refreshErr) {
+      if (refreshErr instanceof ApiError) throw refreshErr;
+      document.cookie = "user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      window.location.href = "/auth/login";
+      throw new ApiError(401, "Session expired. Please log in again.");
+    }
+  }
+  // ─────────────────────────────────────────────────────
+
   // Parse response
   const contentType = res.headers.get("content-type") || "";
   const data = contentType.includes("application/json") ? await res.json() : await res.text();
