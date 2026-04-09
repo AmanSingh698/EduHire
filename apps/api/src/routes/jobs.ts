@@ -23,16 +23,38 @@ jobsRouter.get("/", async (req, res) => {
 
     if (subject) where.subject = { in: String(subject).split(",") };
     if (board) where.board = { in: String(board).split(",") as Board[] };
-    if (city) where.city = { contains: String(city), mode: "insensitive" };
-    if (state) where.state = { in: String(state).split(",") };
     if (type) where.jobType = { in: String(type).split(",") as JobType[] };
     if (salaryMin) where.salaryMin = { gte: Number(salaryMin) };
 
+    // Location: match city OR state so "Delhi" finds both city and state records
+    if (city) {
+      const locationTerm = String(city);
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { city: { contains: locationTerm, mode: "insensitive" } },
+            { state: { contains: locationTerm, mode: "insensitive" } },
+          ],
+        },
+      ];
+    }
+
+    // Sidebar state filter (exact checkbox values)
+    if (state) {
+      const stateList = String(state).split(",").map((s) => s.trim());
+      where.AND = [
+        ...(where.AND || []),
+        { state: { in: stateList } },
+      ];
+    }
+
+    // Keyword search: title, subject, school name (NOT description — avoids false matches)
     if (q) {
       where.OR = [
         { title: { contains: String(q), mode: "insensitive" } },
         { subject: { contains: String(q), mode: "insensitive" } },
-        { description: { contains: String(q), mode: "insensitive" } },
+        { school: { name: { contains: String(q), mode: "insensitive" } } },
       ];
     }
 

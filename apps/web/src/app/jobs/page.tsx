@@ -192,11 +192,13 @@ export default function JobsPage() {
     try {
       const params: any = {
         q: search || undefined,
+        // Location field: search by city OR state
         city: locationSearch || undefined,
         subject: filters.subjects.length ? filters.subjects.join(",") : undefined,
         board: filters.boards.length ? filters.boards.join(",") : undefined,
         type: filters.types.length ? filters.types.join(",") : undefined,
         state: filters.states.length ? filters.states.join(",") : undefined,
+        salaryMin: filters.salaryMin > 0 ? filters.salaryMin : undefined,
       };
       const res = await api.get<{ jobs: JobVacancy[] }>("/api/search/jobs", params);
       

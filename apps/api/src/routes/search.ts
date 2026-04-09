@@ -11,16 +11,38 @@ searchRouter.get("/jobs", async (req, res) => {
 
     const where: any = { status: "ACTIVE" };
 
+    // Main keyword search: title, subject, OR school name (NOT description — avoids false matches)
     if (q) {
       where.OR = [
         { title: { contains: String(q), mode: "insensitive" } },
         { subject: { contains: String(q), mode: "insensitive" } },
-        { description: { contains: String(q), mode: "insensitive" } },
+        { school: { name: { contains: String(q), mode: "insensitive" } } },
       ];
     }
 
-    if (city) where.city = { contains: String(city), mode: "insensitive" };
-    if (state) where.state = { in: String(state).split(",") };
+    // Location search: match city OR state so typing "Delhi" works for both
+    if (city) {
+      const locationTerm = String(city);
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { city: { contains: locationTerm, mode: "insensitive" } },
+            { state: { contains: locationTerm, mode: "insensitive" } },
+          ],
+        },
+      ];
+    }
+
+    // Sidebar state filter (checkbox — exact values from dropdown)
+    if (state) {
+      const stateList = String(state).split(",").map((s) => s.trim());
+      where.AND = [
+        ...(where.AND || []),
+        { state: { in: stateList } },
+      ];
+    }
+
     if (board) where.board = { in: String(board).split(",") as Board[] };
     if (subject) where.subject = { in: String(subject).split(",") };
     if (type) where.jobType = { in: String(type).split(",") as JobType[] };
